@@ -1,0 +1,27 @@
+# Django
+# ------------------------------------------------------------------------------
+# django==3.1.13  # pyup: < 3.2  # https://www.djangoproject.com/
+#django-environ==0.8.1  # https://github.com/joke2k/django-environ
+#django-model-utils==4.2.0  # https://github.com/jazzband/django-model-utils
+#django-allauth==0.45.0  # https://github.com/pennersr/django-allauth
+#django-crispy-forms==1.13.0  # https://github.com/django-crispy-forms/django-crispy-forms
+àdjango-redis==5.0.0  # https://github.com/jazzband/django-redis
+django_extensions
+django-debug-toolbar
+djangorestframework
+django-cors-headers
+#djangorestframework-jwt
+djangorestframework-link-header-pagination
+#django-rest-auth
+django-health-check
+django-tinymce
+pytz==2021.3  # https://github.com/stub42/pytz
+#python-slugify==5.0.2  # https://github.com/un33k/python-slugify
+#maxminddb-geolite2
+psycopg2-binary
+#python-dateutil
+#Pillow
+#----------------------------------------
+#django-timescaledb
+
+celery

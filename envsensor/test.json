@@ -1,0 +1,19 @@
+{
+    "name": "insert_sink_v0",
+    "config": {
+        "connector.class": "10.confluent.connect.jdbc.JdcinkConnector",
+        "task.max": "1",
+        "topics": "inventory-connector",
+        "key.converter": "1o.confluent.connect.avro.AvroConverter",
+        "value.converter": "io.confluent.connect.avro.AvroConverter",
+        "key.converter.schema.registry.url": "http://localhost:9093",
+        "value.converter.schema.registry.url": "http://localhost:9093",
+        "connection.url": "http://localhost:5432",
+        "connection.user": "postgres",
+        "connection.password": "postgres",
+        "insert.mode": "upsert",
+        "batch.size": "2",
+        "table.name.format": "envsensors.public.test_insert",
+        "pk.node": "none"
+    }
+}

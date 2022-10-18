@@ -1,0 +1,27 @@
+  ###To ckeck:
+        '''
+        _SELECT j.hypertable_name,
+           j.job_id,
+           config,
+           schedule_interval,
+           job_status,
+           last_run_status,
+           last_run_started_at,
+           js.next_start,
+           total_runs,
+           total_successes,
+           total_failures
+                  FROM timescaledb_information.jobs j
+                  JOIN timescaledb_information.job_stats js
+                    ON j.job_id = js.job_id
+                  WHERE j.proc_name = 'policy_retention';
+        '''
+        ## or
+        # SELECT * FROM timescaledb_information.jobs;
+        #or
+        # SELECT * FROM timescaledb_information.job_stats;
+
+        ### To run first time:
+        # (optional)-> SET client_min_messages TO DEBUG1;
+        # CALL run_job(job_id);
+        ## Compression?
