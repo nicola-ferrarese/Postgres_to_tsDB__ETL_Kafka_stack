@@ -1,0 +1,163 @@
+version: '2'
+services:
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_ADVERTISED_HOST_NAME=127.0.0.1
+      - KAFKA_ADVERTISED_PORT=9092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENERS=PLAINTEXT://:29092,EXTERNAL://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_SCHEMA_REGISTRY_URL=schemaregistry:8081
+
+    depends_on:
+      - zookeeper
+  
+  postgres1:
+    image: debezium/example-postgres:1.9
+    container_name: source_db
+    ports:
+      - 5600:5600
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGPORT=5600
+
+  postgres2:
+    image: timescale/timescaledb-ha:pg14-latest
+    container_name: destination_db
+    ports:
+      - 5500:5500
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGPORT=5500
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - KAFKA_ADVERTISED_HOST_NAME=zookeeper
+   
+  schemaregistry:
+    container_name: schema_registry
+    image: confluentinc/cp-schema-registry:6.2.0
+    restart: always
+    depends_on:
+      - zookeeper
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zookeeper:2181"
+      SCHEMA_REGISTRY_HOST_NAME: schemaregistry
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+    ports:
+      - 8081:8081
+
+#  kafdrop:
+#    image: obsidiandynamics/kafdrop
+#    container_name: kafdrop
+#    restart: "no"
+#    ports:
+#      - "9900:9000"
+#    environment:
+#      KAFKA_BROKERCONNECT: "kafka:29092"
+#      JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
+#      SCHEMAREGISTRY_CONNECT: http://schemaregistry:8081
+#    depends_on:
+#      - "kafka"
+     
+# debezium connector
+
+  kaf_connect:
+    image: confluentinc/cp-kafka-connect:latest
+    container_name: kafka_connect
+    ports:
+      - 8083:8083
+    environment:
+   
+      CONNECT_GROUP_ID: 'quikstart'
+      CONNECT_BOOTSTRAP_SERVERS: kafka:29092
+      CONNECT_REST_PORT: 8083
+ 
+      CONNECT_CONFIG_STORAGE_TOPIC: "quickstart-avro-config"
+      CONNECT_OFFSET_STORAGE_TOPIC: "quickstart-avro-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "quickstart-avro-status"
+      
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter" 
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter" 
+      
+      CONNECT_REST_ADVERTISED_HOST_NAME: "localhost"
+      #CONNECT_LOG4J_ROOT_LOGLEVEL: DEBUG
+      #CONNECT_PLUGIN_PATH: "/usr/share/java/,/usr/share/confluent-hub-components/"
+    command: 
+      - bash 
+      - -c 
+      - |
+        # Install connector plugins
+        # This will by default install into /usr/share/confluent-hub-components/ so make
+        #  sure that this path is added to the plugin.path in the environment variables 
+        confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:latest & confluent-hub install --no-prompt debezium/debezium-connector-postgresql:1.9.6
+        # Launch the Kafka Connect worker
+        /etc/confluent/docker/run &
+        # Don't exit
+        sleep infinity 
+    links:
+      - zookeeper
+    depends_on:
+      - kafka
+      - zookeeper
+      - postgres1
+      - postgres2
+    
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8888:8080
+    depends_on:
+      - zookeeper
+      - kafka
+      - schemaregistry
+      - kaf_connect
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schemaregistry:8081
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: first
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kaf_connect:8083
+      #KAFKA_CLUSTERS_1_NAME: secondLocal
+      #KAFKA_CLUSTERS_1_BOOTSTRAPSERVERS: kafka1:29092
+      #KAFKA_CLUSTERS_1_ZOOKEEPER: zookeeper1:2181
+      #KAFKA_CLUSTERS_1_METRICS_PORT: 9998
+      #KAFKA_CLUSTERS_1_SCHEMAREGISTRY: http://schemaregistry1:8085
+      #KAFKA_CLUSTERS_1_KAFKACONNECT_0_NAME: first
+      #KAFKA_CLUSTERS_1_KAFKACONNECT_0_ADDRESS: http://kafka-connect0:8083
+
+
+
+
+
+
+
+
+#   an SMT which defines a regular expression matching the topic name <logical-name>.<database-name>.<table-name> and extracts the third part of it as the final topic name
+#        "transforms": "route",                                                       (3)
+#        "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",  (3)
+#        "transforms.route.regex": "([^.]+)\\.([^.]+)\\.([^.]+)",                     (3)
+#        "transforms.route.replacement": "$3"  
+#
