@@ -78,11 +78,11 @@ WSGI_APPLICATION = 'tsDB.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'envsensors',
+        'NAME': 'postgres',
         'USER': 'postgres',
-        'PASSWORD': 'password',
+        'PASSWORD': 'postgres',
         'HOST': '127.0.0.1',
-        'PORT': 5432,
+        'PORT': 5500,
         'TEST': {
             'NAME': 'auto_tests',
         }

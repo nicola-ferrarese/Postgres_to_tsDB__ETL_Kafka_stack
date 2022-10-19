@@ -89,4 +89,5 @@ class Migration(migrations.Migration):
             f"SELECT add_retention_policy('{DjangoApp}_{name}', INTERVAL '30 days');"
         ),
 
+
     ]
